@@ -1,0 +1,73 @@
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+
+Question 1
+Q1<-with(NEI,tapply(Emissions,year,sum,na.rm=TRUE))
+Q1<-data.frame("year"=as.numeric(names(Q1)),"Total.Emission"=Q1)
+png(filename='Q1plot.png')
+with(Q1,plot(year,Total.Emission,xlab="Year",ylab="PM2.5 Emission",main = "Total yearly PM2.5 Emissions between 1999-2008",pch = 19))
+dev.off()
+
+Question 2
+Q2<-with(subset(NEI,fips == "24510"),tapply(Emissions,year,sum,na.rm=TRUE))
+Q2<-data.frame("year"=as.numeric(names(Q2)),"Total.Emission"=Q2)
+png(filename='Q2plot.png')
+with(Q2,plot(year,Total.Emission,xlab="Year",ylab="PM2.5 Emission",main = "Total yearly PM2.5 Emissions, Baltimore City, Maryland",pch = 19))
+dev.off()
+
+Question 3
+library(ggplot2)
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+balt<-subset(NEI,fips == "24510")
+library(data.table)
+Q3<-as.data.table(balt)[, sum(Emissions), by = .(year,type)]
+colnames(Q3)[3] <- "Emissions"
+g<-qplot(as.character(year), Emissions, data = Q3, color = type,group = type)
+png(filename='Q3plot.png')
+g+xlab("year")+geom_line()+ggtitle("Total PM2.5 Emissions by types and years")
+dev.off()
+
+Question 4
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+coal <- SCC[grep("Coal", SCC$EI.Sector), ]
+coalNEI<-subset(NEI,coal$SCC %in% SCC)
+library(data.table)
+coalEmission<-as.data.table(coalNEI)[, sum(Emissions), by = .(year)]
+colnames(coalEmission)[2] <- "Emissions"
+g<-ggplot(coalEmission, aes(as.character(year),Emissions, group=1))
+png(filename='Q4plot.png')
+g+ggtitle("Total yearly PM2.5 Emission from coal combustion-related sources")+xlab("year")+geom_line()+geom_point()
+dev.off()
+
+Question 5
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+motorV<-subset(SCC, grepl("Mobile", EI.Sector, ignore.case = TRUE))
+balt<-subset(NEI,fips == "24510")
+baltMotorV<-subset(balt,motorV$SCC %in% SCC)
+library(ggplot2)
+library(data.table)
+baltMotorVEmission<-as.data.table(baltMotorV)[, sum(Emissions), by = .(year)]
+colnames(baltMotorVEmission)[2] <- "Emissions"
+g<-ggplot(baltMotorVEmission, aes(as.character(year),Emissions, group=1))
+png(filename='Q5plot.png')
+g+ggtitle("Total yearly PM2.5 MOTOR-Emission, Baltimore City")+xlab("year")+geom_line()+geom_point()
+dev.off()
+
+Question 6
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+motorV<-subset(SCC, grepl("Mobile", EI.Sector, ignore.case = TRUE))
+library(dplyr)
+state<-filter(NEI,fips == "24510" | fips == "06037")
+stateMotorV<-subset(state,motorV$SCC %in% SCC)
+library(ggplot2)
+stateMotorVEmission<-as.data.table(stateMotorV)[, sum(Emissions), by = list(year,fips)]
+colnames(stateMotorVEmission)[3] <- "Emissions"
+stateMotorVEmission$Area<-ifelse(stateMotorVEmission$fips=="24510", "Baltimore City","Los Angeles County")
+g<-qplot(year, Emissions, data = stateMotorVEmission, color =  Area)
+png(filename='Q6plot.png')
+g
+dev.off()
